@@ -38,8 +38,9 @@ static const Step CHIP[]    = { S(3100, 0, 12), REST(9), S(3700, 0, 26) };
 // Chips swept into the pot: a clatter that settles.
 static const Step SLIDE[]   = { S(3400, 0, 9), REST(7), S(2900, 0, 9), REST(10), S(3600, 0, 9), REST(14),
                                 S(3100, 0, 9), REST(20), S(3500, 0, 14) };
-// Check: two knuckle raps on the table.
-static const Step KNOCK[]   = { S(520, 300, 18), REST(70), S(500, 280, 22) };
+// Check: two knuckle raps on the table (quick falling blips: a piezo is
+// nearly silent below 1 kHz).
+static const Step KNOCK[]   = { S(1500, 600, 10), REST(70), S(1400, 550, 12) };
 static const Step FOLD[]    = { S(2600, 900, 70) };
 static const Step RAISE[]   = { S(3100, 0, 12), REST(9), S(3700, 0, 20), REST(9), S(4100, 0, 30) };
 static const Step ALLIN[]   = {
@@ -117,7 +118,10 @@ static void hwInit() {
     running = false; lastHz = 0;
 }
 
-static void tone(uint16_t hz) {
+// smooth: change pitch at the end of the current wave cycle (the timer's
+// preloaded reload) instead of restarting it - sweeps glide without a click
+// a millisecond (CHBlackjack played its music this way).
+static void tone(uint16_t hz, bool smooth = false) {
     if (hz == lastHz) return;
     lastHz = hz;
     if (!hz) {
@@ -127,10 +131,16 @@ static void tone(uint16_t hz) {
     }
     uint32_t period = (1000000u + hz / 2u) / hz;
     if (period < 2) period = 2;
+    uint32_t duty = soft ? period / 8 : period / 2;
+    if (smooth && running) {
+        TIM1->ATRLR = period - 1;
+        TIM1->CH2CVR = duty;
+        return;
+    }
     running = true;
     TIM1->CTLR1 = 0;
     TIM1->ATRLR = period - 1;
-    TIM1->CH2CVR = soft ? period / 8 : period / 2;
+    TIM1->CH2CVR = duty;
     TIM1->SWEVGR = 1;
     TIM1->INTFR = 0;
     TIM1->CTLR1 = 0x81;
@@ -142,12 +152,13 @@ extern "C" void osSystickHandler(void) {
     if (!s) { tone(0); return; }
     const Step &st = s[fxI];
     uint16_t hz = st.hz;
+    bool sweep = hz && st.endHz && fxT;
     if (hz && st.endHz) hz = (uint16_t)(st.hz + ((int32_t)st.endHz - st.hz) * fxT / st.ms);
     if (++fxT >= st.ms) {
         fxT = 0;
         if (++fxI >= fxN) { fxSteps = nullptr; fxPrio = 0; }
     }
-    tone(hz);
+    tone(hz, sweep);
 }
 
 namespace audio {
