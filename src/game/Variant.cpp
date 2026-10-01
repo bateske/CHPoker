@@ -13,16 +13,6 @@ const Variant VARIANTS[GAMES] = {
      "7 CARD STUD", "LIMIT - THREE DOWN, FOUR UP", "7 CARD STUD"},
 };
 
-bool gameBuilt(uint8_t g) {
-    switch (g) {
-        case HOLDEM: return CHPK_HOLDEM;
-        case DRAW:   return CHPK_DRAW;
-        case OMAHA:  return CHPK_OMAHA;
-        case STUD:   return CHPK_STUD;
-    }
-    return false;
-}
-
 const int32_t UNIT[LEVELS] = {1, 5, 25};
 const char *const LEVEL_NAME[LEVELS] = {"ROOKIE", "PRO", "SHARK"};
 const char *const LEVEL_LINE[LEVELS] = {"CALLS TOO MUCH", "PLAYS THE ODDS", "SMELLS WEAKNESS"};

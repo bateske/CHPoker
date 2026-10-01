@@ -222,7 +222,7 @@ static void announceWin(const Table &t, const Event &e) {
         annWord(you ? " WIN " : " WINS ", SILVER);
         annMoney(e.amount, GOLD);
     } else {
-        annWord(you ? " WIN WITH " : " WINS WITH ", SILVER);
+        annWord(you ? " WIN: " : " WINS: ", SILVER);
     }
     if (!you) {
         fmtMoney(fmtStr(buf, "+"), e.amount);
@@ -234,7 +234,7 @@ static void announceWin(const Table &t, const Event &e) {
         uint32_t sc = hand::bestFive(p.cards, p.n, t.board, t.nBoard, VARIANTS[t.game].exactTwo, hiHole, hiBoard);
         hiSeat = s;
         hand::describe(buf, sc);
-        if (text35Width(annText) + text35Width(buf) > 112) fmtStr(buf, hand::catName(e.c));
+        if (text35Width(annText) + text35Width(buf) > 118) fmtStr(buf, hand::catName(e.c));
         annWord(buf, CYAN);
         if (e.b == 0) {                                   // the main pot: the big moment
             if (e.c >= hand::QUADS) {

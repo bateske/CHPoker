@@ -9,17 +9,6 @@
 
 #define CHPK_VERSION     "0.1"
 
-// Which games are built in. 0: all four. If they ever stop fitting, the
-// same source builds two editions (tools/device.py --edition N):
-// 1 "Hold'em" (Hold'em + Omaha), 2 "Classic" (Five Card Draw + Stud).
-#ifndef CHPK_EDITION
-#define CHPK_EDITION     0
-#endif
-#define CHPK_HOLDEM      (CHPK_EDITION != 2)
-#define CHPK_OMAHA       (CHPK_EDITION != 2)
-#define CHPK_DRAW        (CHPK_EDITION != 1)
-#define CHPK_STUD        (CHPK_EDITION != 1)
-
 // Serial debug protocol: screenshots, input injection, lockstep, perf.
 // Off in normal builds. tools/device.py turns it on with
 // --build-property build.extra_flags, and leaves USB at "Serial" for it.

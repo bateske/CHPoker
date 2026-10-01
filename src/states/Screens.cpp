@@ -152,8 +152,7 @@ static const char *const TITLE_ITEM[3] = {"PLAY", "OPTIONS", "STATS"};
 
 static void startDemo() {
     // Attract mode: the CPU plays your seat at a random game.
-    uint8_t g;
-    do { g = (uint8_t)(fx::rnd() % GAMES); } while (!gameBuilt(g));
+    uint8_t g = (uint8_t)(fx::rnd() % GAMES);
     Options keep = table.opt;
     Stats keepS = table.stats;
     int32_t purse = table.purse;
@@ -216,7 +215,7 @@ static void lobbyUpdate() {
     if (arduboy.repeat(DOWN_BUTTON) && sel < 3) { sel++; audio::sfx(Sfx::Cursor); }
     Options &o = table.opt;
     if (d && sel == 0) {
-        do { o.game = (uint8_t)((o.game + GAMES + d) % GAMES); } while (!gameBuilt(o.game));
+        o.game = (uint8_t)((o.game + GAMES + d) % GAMES);
         audio::sfx(Sfx::Coin);
     }
     if (d && sel == 1) {
@@ -277,7 +276,12 @@ static const char *const PAUSE_ITEM[PAUSE_N] = {"RESUME", "OPTIONS", "HAND RANKS
 
 static void playUpdate(bool firstTick) {
     if (table.demo) {
-        if (arduboy.justPressedMask()) { table.demo = false; go(Scr::Title); }
+        if (arduboy.justPressedMask()) {
+            table.demo = false;
+            table.seats[YOU].stack = 0;             // the demo's chips were never yours
+            table.phase = Phase::Idle;
+            go(Scr::Title);
+        }
     } else if (overlay == PAUSE) {
         bool start = arduboy.justPressed(START_BUTTON);
         if (menuNav(PAUSE_N) || start) {
@@ -486,6 +490,8 @@ static void endUpdate() {
     }
     if (t > 60 && arduboy.justPressed(A_BUTTON)) {
         audio::sfx(Sfx::Select);
+        table.seats[YOU].stack = 0;                 // the table is over
+        table.phase = Phase::Idle;
         table.newPurse();
         persist();
         go(Scr::Title);
@@ -503,7 +509,7 @@ static void endRender(uint32_t frame) {
         }
         title35("YOU BROKE", 10, 3, FX_B, GOLD, WOOD, WINE, 13);
         title35("THE BANK", 34, 3, FX_B, GOLD, WOOD, WINE, 13);
-        fmtMoney(buf, table.purse);
+        fmtMoney(buf, table.wealth());
         title35(buf, 64, 3, WHITE, CYAN, BLUE, INK, 13);
     } else {
         gfx_clear(INK);
@@ -530,7 +536,7 @@ static bool debugHook(char cmd, const char *args) {
             uint8_t g = (uint8_t)dbg::parseNum(args, 10), lv = (uint8_t)dbg::parseNum(args, 10);
             int32_t in = (int32_t)dbg::parseNum(args, 10);
             uint32_t seed = dbg::parseNum(args, 10);
-            if (g >= GAMES || lv >= LEVELS || !gameBuilt(g)) return false;
+            if (g >= GAMES || lv >= LEVELS) return false;
             if (table.purse < in) table.purse = in;
             table.demo = false;
             table.opt.game = g; table.opt.level = lv;
@@ -591,6 +597,7 @@ static bool debugHook(char cmd, const char *args) {
             p = fmtInt(p, (int32_t)table.phase);
             p = fmtStr(p, table.phase == Phase::Human || table.phase == Phase::DrawHuman ? " 1" : " 0");
             for (uint8_t s = 0; s < SEATS; s++) { *p++ = ' '; p = fmtInt(p, table.seats[s].stack); }
+            p = fmtInt(fmtStr(p, " button="), table.button);
             fmtStr(p, "\n");
             dbg::print(b);
             return true;
@@ -604,7 +611,7 @@ static bool debugHook(char cmd, const char *args) {
 void begin() {
     table.newPurse();
     save::load(table.opt, table.stats, table.purse);
-    if (table.opt.game >= GAMES || !gameBuilt(table.opt.game)) table.opt.game = CHPK_HOLDEM ? HOLDEM : DRAW;
+    if (table.opt.game >= GAMES) table.opt.game = HOLDEM;
     if (table.opt.level >= LEVELS) table.opt.level = 0;
     if (table.purse < minBuyIn(ROOKIE)) table.newPurse();
     buyIn = maxBuyIn(table.opt.level) / 2;

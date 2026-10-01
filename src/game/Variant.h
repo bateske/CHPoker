@@ -2,7 +2,6 @@
 // and the stakes of the three tables.
 #pragma once
 #include <stdint.h>
-#include "../../config.h"
 
 enum Game : uint8_t { HOLDEM, DRAW, OMAHA, STUD, GAMES };
 enum Limit : uint8_t { NO_LIMIT, POT_LIMIT, FIXED_LIMIT };
@@ -24,7 +23,6 @@ struct Variant {
 };
 
 extern const Variant VARIANTS[GAMES];
-bool gameBuilt(uint8_t g);            // in this edition (config.h)
 
 // The tables. Every stake is a multiple of the table's unit:
 //   blinds u / 2u; fixed-limit bets 2u / 4u; stud ante u, bring-in u;
