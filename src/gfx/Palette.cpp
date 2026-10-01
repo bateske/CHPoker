@@ -36,13 +36,11 @@ static const uint16_t RAINBOW[12] = {
     0xF22, 0xF82, 0xFE2, 0x8F2, 0x2F4, 0x2FC, 0x2EF, 0x28F, 0x42F, 0xA2F, 0xF2E, 0xF28,
 };
 
-// TARGETS: FX_A shimmers cyan -> white, FX_B pulses red -> gold (and back).
-static const uint16_t SHIMMER[8] = {0x6EF, 0x7EF, 0x9EF, 0xAFF, 0xBFF, 0xCFF, 0xEFF, 0xFFF};
-static const uint16_t PULSE[8]   = {0xE12, 0xE32, 0xE52, 0xF72, 0xF82, 0xF92, 0xFB2, 0xFC2};
-
 static uint16_t staged[16];
 static bool     dirty = true;
-static uint8_t  themeIdx = 0, fadeLevel = 16;
+static uint8_t  themeIdx = 0, fadeLevel = 16, desat = 0;
+static uint8_t  flashIdx = 0xFF, flashFrames = 0;
+static uint16_t flashColor = 0;
 static bool     cycling = true;
 static uint32_t ticks = 0;
 static uint8_t  mode = CASINO;
@@ -63,7 +61,9 @@ uint8_t theme() { return themeIdx; }
 
 void setFade(uint8_t level)      { if (level > 16) level = 16; if (level != fadeLevel) { fadeLevel = level; dirty = true; } }
 uint8_t fade()                   { return fadeLevel; }
+void setDesaturate(uint8_t a)    { if (a > 16) a = 16; if (a != desat) { desat = a; dirty = true; } }
 void setFx(uint8_t i, uint16_t c){ staged[i] = c; dirty = true; }
+void flash(uint8_t i, uint16_t c, uint8_t frames) { flashIdx = i; flashColor = c; flashFrames = frames; dirty = true; }
 void setCycling(bool on)         { cycling = on; }
 void setMode(uint8_t m)          { mode = m; }
 uint16_t rgb444(uint8_t i)       { return staged[i]; }
@@ -73,18 +73,13 @@ static uint8_t tri(uint32_t t) { t &= 31; return (uint8_t)(t > 15 ? 31 - t : t);
 
 void tick() {
     ticks++;
+    if (flashFrames && --flashFrames == 0) dirty = true;
     if (!cycling) return;
-    uint16_t a, b;
-    if (mode == TARGETS) {
-        a = SHIMMER[tri(ticks * 2) >> 1];
-        b = PULSE[tri(ticks * 2 + 16) >> 1];
-    } else {
-        a = mode == HOVER ? (uint16_t)(tri(ticks >> 1) * 0x111) : RAINBOW[(ticks / 3) % 12];
-        // FX_B: triangle wave GOLD <-> WHITE over 32 frames.
-        uint8_t t = tri(ticks);
-        uint8_t g = (uint8_t)(12 + (t * 3) / 15), bl = (uint8_t)(2 + (t * 13) / 15);
-        b = (uint16_t)(0xF00 | (g << 4) | bl);
-    }
+    uint16_t a = mode == HOVER ? (uint16_t)(tri(ticks >> 1) * 0x111) : RAINBOW[(ticks / 3) % 12];
+    // FX_B: triangle wave GOLD <-> WHITE over 32 frames.
+    uint8_t t = tri(ticks);
+    uint8_t g = (uint8_t)(12 + (t * 3) / 15), bl = (uint8_t)(2 + (t * 13) / 15);
+    uint16_t b = (uint16_t)(0xF00 | (g << 4) | bl);
     // Only a tick that moves FX_A/FX_B marks the palette dirty: each commit
     // costs CHGfx a LUT rebuild at the next flush (and about one tick in ten
     // changes nothing). A late frame that runs several ticks can move a
@@ -102,10 +97,13 @@ void commit() {
     dirty = false;
     uint16_t out[16];
     for (uint8_t i = 0; i < 16; i++) {
-        uint16_t c = staged[i];
-        uint16_t r = (uint16_t)((((c >> 8) & 15) * fadeLevel) >> 4);
-        uint16_t g = (uint16_t)((((c >> 4) & 15) * fadeLevel) >> 4);
-        uint16_t b = (uint16_t)(((c & 15) * fadeLevel) >> 4);
+        uint16_t c = (i == flashIdx && flashFrames) ? flashColor : staged[i];
+        int r = (c >> 8) & 15, g = (c >> 4) & 15, b = c & 15;
+        if (desat) {
+            int y = (r * 5 + g * 9 + b * 2) >> 4;
+            r += ((y - r) * desat) >> 4; g += ((y - g) * desat) >> 4; b += ((y - b) * desat) >> 4;
+        }
+        r = (r * fadeLevel) >> 4; g = (g * fadeLevel) >> 4; b = (b * fadeLevel) >> 4;
         out[i] = (uint16_t)((((r << 1) | (r >> 3)) << 11) | (((g << 2) | (g >> 2)) << 5) | ((b << 1) | (b >> 3)));
     }
     gfx_setPalette(out, 16);

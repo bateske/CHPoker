@@ -25,14 +25,14 @@ void setTheme(uint8_t theme);
 uint8_t theme();
 void setFade(uint8_t level);                // 0 = black .. 16 = full colour
 uint8_t fade();
+void setDesaturate(uint8_t amount);        // 0 = colour .. 16 = grey (going broke)
 void setFx(uint8_t index, uint16_t rgb444); // FX_A/FX_B manual control
+void flash(uint8_t index, uint16_t rgb444, uint8_t frames);   // one colour, briefly
 void setCycling(bool on);                   // rainbow FX_A + pulse FX_B
 // What FX_A/FX_B cycle through. CASINO: CHBlackjack's rainbow and gold/white
-// pulse (banners, titles, the cursor). TARGETS: while a piece is picked up,
-// FX_A shimmers cyan/white (squares it can move to) and FX_B pulses
-// red/gold (pieces it can take). HOVER: as CASINO, but FX_A fades black ->
-// white -> black over a second (the outline of the piece under the glove).
-enum Mode : uint8_t { CASINO, TARGETS, HOVER };
+// pulse (banners, titles, the cursor). HOVER: as CASINO, but FX_A fades
+// black -> white -> black over a second (CHChess's hover outline).
+enum Mode : uint8_t { CASINO, HOVER };
 void setMode(uint8_t m);
 void tick();                                // once per frame, before commit
 void resetClock();                          // debug: restart the FX_A/FX_B cycle

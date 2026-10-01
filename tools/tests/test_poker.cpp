@@ -83,8 +83,8 @@ static void testOrdering() {
           "the wheel is five high");
     CHECK(ev("Ah 2c 3d 4s 5h 6c Kd") > ev("Ah 2c 3d 4s 5h 9c Kd"), "six high beats the wheel");
     // Fewer than five cards (stud's showing hands): no straights or flushes.
-    CHECK(hand::cat(ev("2h 5h 9h Kh")) == hand::HIGH, "four hearts showing are just king high");
-    CHECK(hand::cat(ev("4c 5d 6h 7s")) == hand::HIGH, "four to a straight showing is high card");
+    CHECK(hand::cat(ev("2h 5h 9h Kh")) == hand::HIGH_CARD, "four hearts showing are just king high");
+    CHECK(hand::cat(ev("4c 5d 6h 7s")) == hand::HIGH_CARD, "four to a straight showing is high card");
     CHECK(ev("Kc Kd") > ev("Ac Qd"), "a pair showing beats ace high");
     CHECK(ev("Kc Kd 3h") > ev("Kh Ks 2c"), "kickers count with three cards");
     CHECK(hand::cat(ev("9c 9d 9h")) == hand::TRIPS && hand::cat(ev("9c 9d 9h 9s")) == hand::QUADS, "trips, quads showing");

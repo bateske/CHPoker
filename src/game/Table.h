@@ -129,6 +129,7 @@ public:
     int32_t betSize() const;                // fixed limit: this street's bet
     int32_t wealth() const { return purse + seats[YOU].stack; }
     int32_t goal() const;
+    int32_t rebuyAmount() const { return buyIn < purse ? buyIn : purse; }
 
     void newPurse();                        // $500, stats kept
     // Sit down with buyIn taken from the purse; fresh CPUs; first hand dealt.

@@ -13,7 +13,7 @@
 namespace hand {
 
 enum Cat : uint8_t {
-    HIGH, PAIR, TWO_PAIR, TRIPS, STRAIGHT, FLUSH, FULL_HOUSE, QUADS, STRAIGHT_FLUSH, CATS
+    HIGH_CARD, PAIR, TWO_PAIR, TRIPS, STRAIGHT, FLUSH, FULL_HOUSE, QUADS, STRAIGHT_FLUSH, CATS
 };
 
 uint32_t eval(const uint8_t *cards, uint8_t n);

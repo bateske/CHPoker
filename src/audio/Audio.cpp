@@ -1,4 +1,4 @@
-// A small sound sequencer for the CHGame piezo (from CHBlackjack).
+// A small sound sequencer for the CHGame piezo (from CHBlackjack, via CHChess).
 //
 // Effects play on TIM1 channel 2 (PB10), stepped by the core's 1 kHz
 // SysTick hook (osSystickHandler), so no other timer is used. One pin plays
@@ -17,6 +17,7 @@ uint8_t simLast = 0xFF;
 bool begin(bool on) { simOn = on; return true; }
 void setOn(bool on) { simOn = on; }
 void sfx(Sfx s) { if (simOn) simLast = (uint8_t)s; }
+void blip(uint16_t, uint16_t) {}
 bool playing() { return false; }
 void update() {}
 void led(Led) {}
@@ -31,52 +32,49 @@ struct Step { uint16_t hz, endHz, ms; };        // effect step; hz 0 = rest
 static const Step CURSOR[]  = { S(2100, 0, 10) };
 static const Step SELECT[]  = { S(1700, 0, 18), S(2600, 0, 30) };
 static const Step DENY[]    = { S(900, 650, 70) };
-// A wooden piece set down: a knock and a higher tick.
-static const Step LAND[]    = { S(2400, 1100, 14), REST(8), S(3300, 0, 16) };
-static const Step HOP[]     = { S(1500, 3300, 80) };
-// A smash - tones alternating high and low read as noise on a piezo, the
-// lows lengthening as it lands - then the piece spinning away: falling
-// swoops, about as long as it takes to fly off the screen.
-static const Step CAPTURE[] = {
-    S(3800, 0, 6), S(700, 0, 8), S(3200, 0, 6), S(600, 0, 8), S(2800, 0, 6), S(520, 0, 10),
-    S(2400, 0, 6), S(480, 0, 12),
-    S(2600, 2200, 70), S(2400, 2000, 70), S(2200, 1800, 70), S(2000, 1600, 70), S(1800, 1400, 70),
-    S(1600, 1200, 80), S(1400, 900, 110) };
-static const Step COIN[]    = { S(2800, 0, 10), S(3700, 0, 28) };
-static const Step CHECK[]   = { S(2637, 0, 70), S(1976, 0, 70), S(2637, 0, 70), S(1976, 0, 120) };
-static const Step CASTLE[]  = { S(2400, 1100, 14), REST(40), S(1400, 3200, 70), REST(30), S(2400, 1100, 14), REST(8), S(3300, 0, 16) };
-static const Step PROMOTE[] = {
-    S(1568, 0, 45), S(2093, 0, 45), S(2637, 0, 45), S(3136, 0, 45), S(4186, 0, 60),
-    S(3136, 0, 30), S(4186, 0, 30), S(3136, 0, 30), S(4186, 0, 120) };
-static const Step WHOOSH[]  = { S(1200, 3800, 90) };
+static const Step DEAL[]    = { S(3600, 1500, 22) };
 static const Step FLIP[]    = { S(2300, 0, 8), REST(5), S(3300, 0, 12) };
-// CHBlackjack's BLACKJACK fanfare: the signature win.
-static const Step MATE[]    = {
+static const Step CHIP[]    = { S(3100, 0, 12), REST(9), S(3700, 0, 26) };
+// Chips swept into the pot: a clatter that settles.
+static const Step SLIDE[]   = { S(3400, 0, 9), REST(7), S(2900, 0, 9), REST(10), S(3600, 0, 9), REST(14),
+                                S(3100, 0, 9), REST(20), S(3500, 0, 14) };
+// Check: two knuckle raps on the table.
+static const Step KNOCK[]   = { S(520, 300, 18), REST(70), S(500, 280, 22) };
+static const Step FOLD[]    = { S(2600, 900, 70) };
+static const Step RAISE[]   = { S(3100, 0, 12), REST(9), S(3700, 0, 20), REST(9), S(4100, 0, 30) };
+static const Step ALLIN[]   = {
+    S(3800, 0, 6), S(700, 0, 8), S(3200, 0, 6), S(600, 0, 8), S(2800, 0, 6), S(520, 0, 10),
+    S(1400, 3600, 160), REST(30), S(3600, 0, 40), S(4200, 0, 120) };
+static const Step WIN[]     = { S(2093, 0, 60), S(2637, 0, 60), S(3136, 0, 60), S(4186, 0, 170) };
+// CHBlackjack's BLACKJACK fanfare: the signature big win.
+static const Step BIGWIN[]  = {
     S(1568, 0, 50), S(2093, 0, 50), S(2637, 0, 50), S(3136, 0, 90),
     S(2093, 0, 40), S(2637, 0, 40), S(2093, 0, 40), S(2637, 0, 40),
     S(3136, 0, 40), S(4186, 0, 40), S(3136, 0, 40), S(4186, 0, 40),
     S(2000, 4200, 220) };
-// Victory: a short tune (was a Playtune score in CHBlackjack).
-static const Step WIN[]     = {
-    S(2093, 0, 110), S(2637, 0, 110), S(3136, 0, 110), S(4186, 0, 220), REST(60),
-    S(3520, 0, 110), S(4186, 0, 330) };
-static const Step LOSE[]    = { S(1568, 1480, 260), S(1480, 1397, 260), S(1397, 1319, 260), S(1319, 1100, 700) };
-static const Step DRAW[]    = { S(1760, 0, 70), REST(40), S(1760, 0, 70), REST(40), S(1319, 0, 160) };
+static const Step LOSE[]    = { S(1300, 950, 140), S(950, 700, 220) };
+static const Step SHUFFLE[] = {
+    S(3000, 0, 7), REST(12), S(3400, 0, 7), REST(12), S(3100, 0, 7), REST(12), S(3500, 0, 7), REST(12),
+    S(3000, 0, 7), REST(12), S(3400, 0, 7), REST(12), S(3200, 0, 7), REST(12), S(3600, 0, 7), REST(60),
+    S(2400, 3800, 120) };
+static const Step COIN[]    = { S(2800, 0, 10), S(3700, 0, 28) };
 static const Step TURN[]    = { S(2637, 0, 40), S(3520, 0, 90) };
+static const Step BUST[]    = { S(1600, 950, 110), S(950, 560, 130), S(560, 330, 230) };
 static const Step TITLE[]   = {
     S(1568, 0, 90), S(2093, 0, 90), S(2637, 0, 90), S(3136, 0, 180), REST(40),
     S(2637, 0, 90), S(3136, 0, 360) };
-// The CPU's clock while it thinks: the faintest clicks (played soft).
+static const Step WHOOSH[]  = { S(1200, 3800, 90) };
+// A CPU's clock while it thinks: the faintest clicks (played soft).
 static const Step TICK[]    = { S(1100, 0, 3) };
 static const Step TOCK[]    = { S(850, 0, 3) };
 
 struct SfxDef { const Step *steps; uint8_t n, prio; };
 #define DEF(a, p) { a, (uint8_t)(sizeof(a) / sizeof(a[0])), p }
 static const SfxDef DEFS[(int)Sfx::COUNT] = {
-    DEF(CURSOR, 0), DEF(SELECT, 1), DEF(DENY, 1), DEF(LAND, 1), DEF(HOP, 1), DEF(CAPTURE, 2),
-    DEF(COIN, 1), DEF(CHECK, 3), DEF(CASTLE, 2), DEF(PROMOTE, 3), DEF(WHOOSH, 1), DEF(FLIP, 1),
-    DEF(MATE, 4), DEF(WIN, 4), DEF(LOSE, 4), DEF(DRAW, 4), DEF(TURN, 1), DEF(TITLE, 2),
-    DEF(TICK, 0), DEF(TOCK, 0),
+    DEF(CURSOR, 0), DEF(SELECT, 1), DEF(DENY, 1), DEF(DEAL, 1), DEF(FLIP, 1), DEF(CHIP, 1),
+    DEF(SLIDE, 1), DEF(KNOCK, 2), DEF(FOLD, 1), DEF(RAISE, 2), DEF(ALLIN, 3), DEF(WIN, 3),
+    DEF(BIGWIN, 4), DEF(LOSE, 3), DEF(SHUFFLE, 2), DEF(COIN, 1), DEF(TURN, 1), DEF(BUST, 3),
+    DEF(TITLE, 2), DEF(WHOOSH, 1), DEF(TICK, 0), DEF(TOCK, 0),
 };
 
 // --- Sequencer state (shared with the 1 kHz interrupt) ----------------------
@@ -179,6 +177,16 @@ void sfx(Sfx s) {
 }
 
 bool playing() { return fxSteps != nullptr; }
+
+static Step blipStep;
+void blip(uint16_t hz, uint16_t ms) {
+    if (!started || fxSteps) return;                  // never over an effect
+    __disable_irq();
+    blipStep.hz = hz; blipStep.endHz = 0; blipStep.ms = ms;
+    fxSteps = &blipStep; fxN = 1; fxI = 0; fxT = 0; fxPrio = 0;
+    soft = false;
+    __enable_irq();
+}
 
 void led(Led p) { ledPattern = p; ledT = 0; }
 

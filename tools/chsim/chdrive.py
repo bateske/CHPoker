@@ -12,9 +12,9 @@ Script lines (# comments allowed):
     wait N              advance N frames
     free SECONDS        run free (real time) for a while, then lockstep again
     freegif NAME SECONDS EVERY   the same, sampled into a GIF
-    goto SQ [W]         (simulator) walk the glove to square SQ with D-pad taps
-    board               (simulator) print the board
-    waitturn [W]        (simulator) run until it is your move, then W frames more
+    waitturn [W]        run until the table waits for you, then W frames more
+    table               print the table's phase, your turn and the stacks
+    playto P [W]        check/call on your turns until the table reaches phase P
     rec start [EVERY] / rec stop NAME   record everything in between to NAME.gif
     tap BTN[+BTN] [H]   hold for H frames (default 3), then release, then 1 frame
     hold BTN[+BTN]      keep held until `release`
@@ -237,7 +237,7 @@ class Driver:
                     if line.startswith("OK ") and line[3:].strip().isdigit():
                         self.t.send("N 5")         # a frame ack, still waiting
                         continue
-                    if line.startswith(("LAPS", "BENCH", "THINK", "RPROF")):
+                    if line.startswith(("LAPS", "BENCH", "THINK", "RPROF", "TABLE")):
                         print(line)
                     if line.startswith("OK"):
                         break
@@ -249,36 +249,32 @@ class Driver:
                 self.cmd("L0")
                 time.sleep(float(args[0]))
                 self.cmd("L1")
-            elif op == "goto":
-                # Walk the glove to square N with D-pad presses (simulator: the
-                # game plans the route), W frames apart (default 8).
-                route = self.query(f"R {args[0]}", "ROUTE").split()[1:]
-                steps = route[0] if route else ""
-                if "?" in steps:
-                    raise SystemExit(f"no route to {args[0]}")
-                gap = int(args[1]) if len(args) > 1 else 8
-                for ch in steps:
-                    self.buttons(mask_of({"U": "UP", "D": "DOWN", "L": "LEFT", "R": "RIGHT"}[ch]))
-                    self.frames(3)
-                    self.buttons(0)
-                    self.frames(gap)
             elif op == "waitturn":
-                # (simulator) until the game waits for your move, then W more
-                # frames. CHECK! against you is answered with A after 90 frames.
-                waited = 0
-                for _ in range(5000):
-                    state = self.query("H", "BOARD").split()
-                    if state[3] == "1":
+                # Run until the table waits for you (a bet or the draw), then
+                # W frames more (default 0). Gives up after 6000 frames.
+                for _ in range(6000):
+                    state = self.query("H", "TABLE").split()
+                    if state[2] == "1":
                         break
-                    waited = waited + 1 if state[4] == "1" else 0
-                    if waited > 90:
+                    self.frames(1)
+                self.frames(int(args[0]) if args else 0)
+            elif op == "playto":
+                # Check or call (A) whenever it is your turn, until the table
+                # reaches phase P (src/game/Table.h: 11 showdown, 12 award,
+                # 13 hand over), then W frames more.
+                want = int(args[0])
+                for _ in range(20000):
+                    state = self.query("H", "TABLE").split()
+                    if int(state[1]) == want:
+                        break
+                    if state[2] == "1":
                         self.buttons(mask_of("A"))
                         self.frames(3)
                         self.buttons(0)
                     self.frames(1)
-                self.frames(int(args[0]) if args else 0)
-            elif op == "board":
-                print(self.query("H", "BOARD"), flush=True)
+                self.frames(int(args[1]) if len(args) > 1 else 0)
+            elif op == "table":
+                print(self.query("H", "TABLE"), flush=True)
             elif op == "rec":
                 # rec start [EVERY]: record from here (every EVERY-th frame, 3);
                 # rec stop NAME: write NAME.gif.

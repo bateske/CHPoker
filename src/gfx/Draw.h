@@ -1,6 +1,6 @@
-// The game's own drawing primitives: rounded rects, remapped 4 bpp row-span
-// sprites (plain, scaled, rotated), dithering, coloured column glyphs and
-// PPOT's 3x5 font. CHGfx 1.3 has its own versions of all but the column
+// The game's own drawing primitives: rounded rects and panels, remapped 4 bpp
+// row-span sprites, dithering, an in-place colour remap, coloured column
+// glyphs and PPOT's 3x5 font (from CHChess and CHBlackjack). CHGfx 1.3 has its own versions of all but the column
 // glyphs (the font as CHGfx_Tiny3x5, with the same glyphs), but they cost
 // more flash here, the text about 2 KB more (docs/CHGfx-notes.md).
 // Framebuffer only.
@@ -14,16 +14,15 @@
 
 void fillRound(int x, int y, int w, int h, uint8_t r, uint8_t c);   // r <= 4
 void roundRect(int x, int y, int w, int h, uint8_t r, uint8_t c);
+// fillRound in fill, then roundRect in edge: cards, plates and panels.
+void panel(int x, int y, int w, int h, uint8_t r, uint8_t fill, uint8_t edge);
+// Recolour in place, pixel = remap[pixel] (dimming folded hands).
+void remapRect(int x, int y, int w, int h, const uint8_t *remap);
 
 // span4 art (tools/assets.py pack_span4): w, h, then per row a count and
-// (len-1)<<4|colour bytes, colour 15 = skip. Drawn through a remap and
-// scaled (Q8, 256 = 1:1).
-void sprite4(const uint8_t *data, int x, int y, const uint8_t *remap, int scale = 256);
-// span4 art turned by `angle` (256 = one turn) and scaled (256 = 1:1) about
-// its pixel (ax, ay), which lands on screen (px, py). Decodes into the CHGfx
-// chunk scratch: render time only, art up to 32x60.
-void spriteRot(const uint8_t *data, int ax, int ay, int px, int py, uint8_t angle, int scale,
-               const uint8_t *remap);
+// (len-1)<<4|colour bytes, colour 15 = skip. Drawn through a remap
+// (nullptr: as drawn).
+void sprite4(const uint8_t *data, int x, int y, const uint8_t *remap = nullptr);
 
 void dither(int x, int y, int w, int h, uint8_t c, uint8_t phase);      // 50% checker
 

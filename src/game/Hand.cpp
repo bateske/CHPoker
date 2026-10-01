@@ -84,7 +84,7 @@ uint32_t eval(const uint8_t *c, uint8_t n) {
         }
         return kick(kick(((uint32_t)PAIR << 4) | p, all & ~(1u << p), 3), 0, 1);
     }
-    return kick(HIGH, all, 5);
+    return kick(HIGH_CARD, all, 5);
 }
 
 uint32_t omaha(const uint8_t *h, const uint8_t *b, uint8_t nb, uint32_t beat) {
@@ -163,7 +163,7 @@ char *describe(char *buf, uint32_t score) {
     uint8_t c = cat(score), r = topRank(score);
     char *p = buf;
     switch (c) {
-        case HIGH: p = put(put(p, RANK_WORD[r]), " HIGH"); break;
+        case HIGH_CARD: p = put(put(p, RANK_WORD[r]), " HIGH"); break;
         case PAIR: p = plural(put(p, "PAIR OF "), r); break;
         case TRIPS: p = plural(put(p, "THREE "), r); break;
         case QUADS: p = plural(put(p, "FOUR "), r); break;

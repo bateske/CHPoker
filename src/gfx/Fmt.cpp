@@ -23,3 +23,11 @@ char *fmtStr(char *p, const char *s) {
     *p = 0;
     return p;
 }
+
+char *fmtShort(char *p, int32_t v) {
+    if (v < 10000 && v > -10000) return fmtMoney(p, v);
+    p = fmtMoney(p, v / 1000);
+    *p++ = 'K';
+    *p = 0;
+    return p;
+}

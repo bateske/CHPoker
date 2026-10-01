@@ -6,7 +6,7 @@
 
 // Pacing, in frames at the FUN pace (QUICK halves them).
 enum : uint8_t {
-    P_ACTION = 16, P_STREET = 18, P_DEALT = 10, P_REVEAL = 36, P_AWARD = 56, P_DRAW = 26, P_FOLDED = 6,
+    P_ACTION = 16, P_STREET = 18, P_DEALT = 10, P_REVEAL = 36, P_AWARD = 80, P_DRAW = 26, P_FOLDED = 6,
 };
 static const int32_t GOALS[3] = {10000, 50000, 0};
 static const uint8_t COLOURS = 6;            // CPU avatar colours (render/CardArt)

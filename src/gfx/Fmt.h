@@ -6,4 +6,5 @@
 
 char *fmtInt(char *p, int32_t v);
 char *fmtMoney(char *p, int32_t v);         // "$1234", "-$5"
+char *fmtShort(char *p, int32_t v);         // as fmtMoney, but "$12K" from $10,000
 char *fmtStr(char *p, const char *s);

@@ -12,22 +12,21 @@ namespace save {
 // Device debug builds (the serial protocol) don't fit with this code and a
 // page left over to save in, so saving is left out of them.
 bool available() { return false; }
-bool load(Options &, Stats &, bool &hasGame) { hasGame = false; return false; }
-bool loadGame() { return false; }
-bool store(const Options &, const Stats &, bool) { return false; }
+bool load(Options &, Stats &, int32_t &) { return false; }
+bool store(const Options &, const Stats &, int32_t) { return false; }
 #else
-static const uint32_t MAGIC = 0x53434843u;       // "CHCS"
-static const uint8_t VERSION = 2;              // 2: three opponents
+static const uint32_t MAGIC = 0x4B504843u;       // "CHPK"
+static const uint8_t VERSION = 1;
 static const uint32_t PAGE = 256;
 static const uint32_t PAGE_A = 0xF500, PAGE_B = 0xF600;   // metadata page is 0xF700
 
 struct Record {
     uint32_t magic;
-    uint8_t  version, hasGame;
+    uint8_t  version, pad;
     uint16_t seq;
+    int32_t  purse;          // your money, the chips at the table included
     Options  opt;
     Stats    stats;
-    match::Record game;
     uint32_t crc;
 };
 static_assert(sizeof(Record) <= PAGE, "save record must fit one flash page");
@@ -128,34 +127,28 @@ static const Record *best() {
     return va ? a : (vb ? b : nullptr);
 }
 
-bool load(Options &o, Stats &s, bool &hasGame) {
-    hasGame = false;
+bool load(Options &o, Stats &s, int32_t &purse) {
     const Record *r = best();
     if (!r) return false;
     lastSeq = r->seq;
     o = r->opt;
     s = r->stats;
-    hasGame = r->hasGame != 0;
+    purse = r->purse;
     return true;
 }
 
-bool loadGame() {
-    const Record *r = best();
-    return r && r->hasGame && match::load(r->game);
-}
-
-bool store(const Options &o, const Stats &s, bool withGame) {
+bool store(const Options &o, const Stats &s, int32_t purse) {
     if (!available()) return false;
     uint8_t *buf = gfx_chunkScratch();          // idle between gfx_wait() and the next flush
     memset(buf, 0xFF, PAGE);
     Record &rec = *(Record *)buf;
     rec.magic = MAGIC;
     rec.version = VERSION;
+    rec.pad = 0;
     rec.seq = (uint16_t)(lastSeq + 1);
+    rec.purse = purse;
     rec.opt = o;
     rec.stats = s;
-    rec.hasGame = withGame ? 1 : 0;
-    if (withGame) match::save(rec.game);
     rec.crc = crc32(buf, (uint32_t)(sizeof rec - 4));
     uint32_t addr = ((rec.seq & 1) || !twoPages()) ? PAGE_B : PAGE_A;   // alternate pages
     if (!writePage(addr, buf)) { broken = true; return false; }
