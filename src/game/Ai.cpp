@@ -16,11 +16,13 @@ namespace ai {
 //   slow     checks or calls a monster, this often
 //   fear     equity lost per bet or raise from the others this street
 //   pos      equity gained acting last
-struct Level { uint16_t samples; uint8_t noise, slack; uint16_t betAt, raiseAt; uint8_t bluff, slow, fear, pos; };
+//   floor    on the first street, folds anything below this share (the
+//            price looks cheap there, but the betting to come is not)
+struct Level { uint16_t samples; uint8_t noise, slack; uint16_t betAt, raiseAt, floor; uint8_t bluff, slow, fear, pos; };
 static const Level LEVEL[LEVELS] = {
-    {32, 30, 34, 410, 560, 6, 70, 0, 0},       // ROOKIE: calls too much, rarely raises
-    {128, 13, 8, 340, 450, 20, 26, 18, 5},     // PRO: plays the odds
-    {256, 8, 0, 310, 410, 31, 38, 22, 10},     // SHARK: positional, bluffs, reads you
+    {32, 30, 34, 400, 540, 150, 6, 70, 0, 0},       // ROOKIE: calls too much, rarely raises
+    {128, 13, 8, 330, 390, 265, 20, 26, 18, 5},     // PRO: plays the odds
+    {256, 8, 0, 300, 345, 285, 31, 38, 22, 10},     // SHARK: positional, bluffs, reads you
 };
 
 uint16_t samplesFor(uint8_t level, uint8_t game) {
@@ -141,7 +143,7 @@ Choice decide(const View &v, uint8_t level, int8_t quirk, const Read &rd) {
         else if (v.nOpp <= 2 && roll < L.bluff) raise = true;
     } else {
         int need = (int)(v.toCall * 256 / (v.pot + v.toCall));
-        if (eq + L.slack < need) {
+        if (eq + L.slack < need || (v.street == 0 && rel < L.floor)) {
             // SHARK sometimes re-bluffs one opponent instead of folding.
             if (level == SHARK && v.nOpp == 1 && v.canRaise && roll < L.bluff / 3) raise = true;
             else { c.move = M_FOLD; return c; }

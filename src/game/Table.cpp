@@ -217,12 +217,18 @@ void Table::sitDown(uint8_t g, uint8_t lv, int32_t in, uint32_t s) {
     seats[YOU].colour = 0xFF;
     for (uint8_t i = 1; i < SEATS; i++) seatCpu(i);
     button = (uint8_t)(rand32() & 3);
+    if (!demo && wealth() > stats.bestPurse) stats.bestPurse = wealth();
     go(Phase::HandStart, 20);
 }
 
 void Table::leave() {
-    if (phase != Phase::HandOver && phase != Phase::Rebuy && phase != Phase::Idle && !demo)
-        stats.g[game].net += seats[YOU].stack - handStart;        // chips in the pot are lost
+    if (phase == Phase::HandOver && step) {          // the hand's books close first
+        step = 0;
+        endHand();
+        if (phase == Phase::Won || phase == Phase::Broke) return;
+    }
+    bool mid = phase != Phase::HandOver && phase != Phase::Rebuy && phase != Phase::Leave;
+    if (mid && !demo) stats.g[game].net += seats[YOU].stack - handStart;   // chips in the pot are lost
     purse += seats[YOU].stack;
     seats[YOU].stack = 0;
     wantSave = !demo;
@@ -479,6 +485,7 @@ void Table::winUncontested() {
     pot = 0;
     go(Phase::HandOver, P_AWARD);
     step = 1;                                        // HandOver: end the hand first
+    bar = Bar::None;
 }
 
 void Table::computePots() {
@@ -536,7 +543,7 @@ void Table::showdown() {
 
 void Table::award() {
     // Side pots first, the main pot last.
-    if (!step) { go(Phase::HandOver, P_AWARD); step = 1; return; }
+    if (!step) { go(Phase::HandOver, P_AWARD); step = 1; bar = Bar::None; return; }
     uint8_t k = --step;
     const Pot &pp = pots[k];
     uint32_t best = 0;

@@ -233,7 +233,7 @@ static int64_t money() {
 struct Cover { long hands, showdowns, sidePots, allins, youRaise, youFold, draws, rebuys, leaves, uncontested, splits; };
 static Cover cov[GAMES];
 // What the CPUs do, by table: [level][fold, check, call, bet/raise, all in], preflop/first street only.
-static long acts[LEVELS][5];
+static long acts[GAMES][LEVELS][5];
 static long cpuHands[LEVELS], cpuPotBB[LEVELS];
 
 static bool fuzz(uint8_t game, uint8_t level, int hands, bool demo) {
@@ -282,7 +282,7 @@ static bool fuzz(uint8_t game, uint8_t level, int hands, bool demo) {
                 case Ev::Action:
                     if (demo || e.a != YOU) {
                         uint8_t k = e.b == A_FOLD ? 0 : e.b == A_CHECK ? 1 : e.b == A_CALL ? 2 : e.b == A_ALLIN ? 4 : 3;
-                        if (T.street == 0) acts[level][k]++;
+                        if (T.street == 0) acts[game][level][k]++;
                     }
                     if (e.b == A_ALLIN) cv.allins++;
                     if (e.a == YOU && !demo && (e.b == A_RAISE || e.b == A_BET)) cv.youRaise++;
@@ -368,7 +368,32 @@ static void testHonesty() {
     }
 }
 
+// Your statistics follow the money: hands dealt, net winnings, best purse.
+static void testStats() {
+    memset(&T, 0, sizeof T);
+    T.newPurse();
+    T.opt.goal = GOAL_ENDLESS;
+    T.sitDown(HOLDEM, ROOKIE, 200, 4321);
+    int32_t startWealth = T.wealth();
+    int hands = 0;
+    for (int i = 0; i < 200000 && hands < 30; i++) {
+        uint8_t pressed = (i & 7) == 0 ? A_BUTTON : 0;
+        if (T.phase == Phase::Rebuy || T.phase == Phase::Leave) break;
+        T.update(pressed, pressed, false, true);
+        Event e;
+        while (T.popEvent(e)) if (e.type == Ev::HandEnd) hands++;
+    }
+    const GameStats &g = T.stats.g[HOLDEM];
+    CHECKT(hands >= 10, "stats: %d hands played", hands);
+    CHECKT((int)g.hands >= hands && (int)g.hands <= hands + 1, "stats: hands %u for %d played", g.hands, hands);
+    // Leave (mid-hand or not): the net is exactly what the purse moved.
+    T.leave();
+    CHECKT(g.net == T.wealth() - startWealth, "stats: net %d, wealth moved %d", g.net, T.wealth() - startWealth);
+    CHECKT(T.stats.bestPurse >= startWealth, "stats: best purse %d", T.stats.bestPurse);
+}
+
 void testTable() {
+    testStats();
     testBetting();
     testBringInAndOrder();
     testPots();
@@ -377,12 +402,14 @@ void testTable() {
             bool ok = fuzz(g, lv, g == OMAHA ? 400 : 1500, false) && fuzz(g, lv, 200, true);
             CHECKT(ok, "fuzz game %u level %u", g, lv);
         }
-    for (uint8_t lv = 0; lv < LEVELS; lv++) {
-        long *a = acts[lv], n = a[0] + a[1] + a[2] + a[3] + a[4];
-        printf("CPUs at %-6s first-street fold %ld%% check %ld%% call %ld%% raise %ld%% all-in %ld%%, "
-               "average pot (all-CPU tables) %ld big blinds\n", LEVEL_NAME[lv], a[0] * 100 / n, a[1] * 100 / n,
-               a[2] * 100 / n, a[3] * 100 / n, a[4] * 100 / n, cpuPotBB[lv] / (cpuHands[lv] ? cpuHands[lv] : 1));
-    }
+    for (uint8_t g = 0; g < GAMES; g++)
+        for (uint8_t lv = 0; lv < LEVELS; lv++) {
+            long *a = acts[g][lv], n = a[0] + a[1] + a[2] + a[3] + a[4];
+            if (!n) n = 1;
+            printf("%-11s %-6s first street: fold %2ld%% check %2ld%% call %2ld%% raise %2ld%% all-in %2ld%%, "
+                   "pots %ld bb\n", VARIANTS[g].name, LEVEL_NAME[lv], a[0] * 100 / n, a[1] * 100 / n,
+                   a[2] * 100 / n, a[3] * 100 / n, a[4] * 100 / n, cpuPotBB[lv] / (cpuHands[lv] ? cpuHands[lv] : 1));
+        }
     for (uint8_t g = 0; g < GAMES; g++) {
         const Cover &c = cov[g];
         printf("fuzz %-11s hands %ld showdowns %ld side-pots %ld splits %ld uncontested %ld all-ins %ld "

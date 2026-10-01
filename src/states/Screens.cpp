@@ -35,6 +35,9 @@ static bool seeded;
 
 enum Overlay : uint8_t { NONE, PAUSE, RANKS };
 static Overlay overlay;
+#if CHPK_DEBUG
+static uint32_t thinkAt, thinkLast, thinkMax;       // a CPU's think, wall time (debug W)
+#endif
 
 // ---------------------------------------------------------------------------
 // Flow
@@ -299,7 +302,18 @@ static void playUpdate(bool firstTick) {
     static const uint8_t DIRS = UP_BUTTON | DOWN_BUTTON | LEFT_BUTTON | RIGHT_BUTTON;
     for (uint8_t b = 1; b; b <<= 1) if ((DIRS & b) && arduboy.repeat(b)) rep |= b;
     if (overlay) rep = 0;
+#if CHPK_DEBUG
+    bool wasThinking = table.phase == Phase::Think;
+#endif
     table.update(pressed, rep, stage::busy(), firstTick);
+#if CHPK_DEBUG
+    bool thinking = table.phase == Phase::Think;
+    if (thinking && !wasThinking) thinkAt = millis();
+    if (!thinking && wasThinking) {
+        thinkLast = millis() - thinkAt;
+        if (thinkLast > thinkMax) thinkMax = thinkLast;
+    }
+#endif
     stage::onEvents(table);
     stage::update(table, arduboy.frameCount);
     if (table.wantSave && !table.demo) persist();
@@ -312,15 +326,16 @@ static void playUpdate(bool firstTick) {
 }
 
 static void ranksRender() {
-    panel(14, 100);
+    fillRound(4, 14, 120, 98, 3, NAVY);
+    roundRect(4, 14, 120, 98, 3, GOLD);
     centred35(18, "HAND RANKS", GOLD);
     static const char *const R[10] = {"ROYAL FLUSH", "STRAIGHT FLUSH", "FOUR OF A KIND", "FULL HOUSE", "FLUSH",
                                       "STRAIGHT", "THREE OF A KIND", "TWO PAIR", "PAIR", "HIGH CARD"};
-    static const char *const EX[10] = {"AKQJT SAME SUIT", "98765 SAME SUIT", "7777", "QQQ 55", "5 OF A SUIT",
+    static const char *const EX[10] = {"AKQJT SUITED", "98765 SUITED", "7777", "QQQ 55", "5 SUITED",
                                        "65432", "888", "KK 33", "JJ", "A HIGH"};
     for (int i = 0; i < 10; i++) {
-        text35(19, 27 + i * 8, R[i], i < 2 ? FX_B : WHITE);
-        text35(109 - text35Width(EX[i]), 27 + i * 8, EX[i], SILVER);
+        text35(8, 27 + i * 8, R[i], i < 2 ? FX_B : WHITE);
+        text35(121 - text35Width(EX[i]), 27 + i * 8, EX[i], SILVER);
     }
 }
 
@@ -402,7 +417,7 @@ static void optionsRender(uint32_t frame) {
         optField(OPT_TEXT[i], (uint8_t)(optByte(i) + 1), value);
         text35(114 - text35Width(value), y + 2, value, i == sel ? WHITE : FELT_LT);
     }
-    centred35(118, "CARDS AND FONT: PRESS PLAY ON TAPE", SILVER);
+    centred35(116, "ART: PRESS PLAY ON TAPE", SILVER);
 }
 
 // ---------------------------------------------------------------------------
@@ -429,7 +444,7 @@ static void statsRender(uint32_t frame) {
     static const char *const BEST[hand::CATS + 1] = {"-", "HIGH", "PAIR", "2PAIR", "TRIPS", "STRT", "FLUSH",
                                                      "FULL", "QUADS", "SFLUSH"};
     char b[16];
-    for (uint8_t g = 0; g < GAMES; g++) text35(46 + g * 20 + 9 - text35Width(COL[g]) / 2, 28, COL[g], GOLD);
+    for (uint8_t g = 0; g < GAMES; g++) text35(52 + g * 21 - text35Width(COL[g]) / 2, 28, COL[g], GOLD);
     for (uint8_t r = 0; r < 5; r++) {
         int y = 37 + r * 9;
         text35(8, y, ROW[r], WHITE);
@@ -442,7 +457,7 @@ static void statsRender(uint32_t frame) {
                 case 3: fmtShort(b, s.biggest); break;
                 default: fmtStr(b, BEST[s.best < hand::CATS + 1 ? s.best : 0]); break;
             }
-            text35(46 + g * 20 + 9 - text35Width(b) / 2, y, b, r == 2 ? (s.net < 0 ? RED : FELT_LT) : SILVER);
+            text35(52 + g * 21 - text35Width(b) / 2, y, b, r == 2 ? (s.net < 0 ? RED : FELT_LT) : SILVER);
         }
     }
     char *p = fmtMoney(fmtStr(b, "PURSE "), table.purse);
@@ -481,10 +496,10 @@ static void endRender(uint32_t frame) {
     char buf[24];
     if (cur == Scr::Won) {
         gfx_clear(NAVY);
-        // A slow sunburst behind the lettering.
-        for (int k = 0; k < 12; k++) {
-            int a = (int)(frame / 2) + k * 21;
-            gfx_line(64, 58, 64 + (fx::isin(a + 64) * 100 >> 8), 58 + (fx::isin(a) * 100 >> 8), k & 1 ? BLUE : WINE);
+        // Rings of light spreading out behind the lettering.
+        for (int k = 0; k < 6; k++) {
+            int r = (int)((frame / 2 + k * 12) % 72);
+            roundRect(64 - r, 58 - r, 2 * r + 1, 2 * r + 1, 4, k & 1 ? BLUE : WINE);
         }
         title35("YOU BROKE", 10, 3, FX_B, GOLD, WOOD, WINE, 13);
         title35("THE BANK", 34, 3, FX_B, GOLD, WOOD, WINE, 13);
@@ -533,6 +548,15 @@ static bool debugHook(char cmd, const char *args) {
             return true;
         }
         case '$': table.purse = (int32_t)dbg::parseNum(args, 10); return true;
+        case 'W': {
+            char b[48];
+            char *p = fmtInt(fmtStr(b, "THINK last="), (int32_t)thinkLast);
+            p = fmtInt(fmtStr(p, " max="), (int32_t)thinkMax);
+            fmtStr(p, "\n");
+            dbg::print(b);
+            thinkMax = 0;
+            return true;
+        }
         case 'J': {
             static const char K[] = "TLOSWB";
             const char *q = strchr(K, args[0]);
@@ -542,6 +566,7 @@ static bool debugHook(char cmd, const char *args) {
             return true;
         }
 #ifdef CHSIM
+        case 'Z': begin(); return true;          // "power cycle": reload the save, back to the title
         case 'Q': {
             // Calibration for chdrive's `cal`: host ns for the primitives the
             // CHGfx benchmark measured on the board (benchmark-results.txt).

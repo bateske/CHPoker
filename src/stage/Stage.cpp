@@ -47,7 +47,7 @@ static uint8_t annCol[8], annN, annT;
 
 static uint8_t hiSeat = 0xFF, hiHole, hiBoard;    // the winning five
 static int16_t gx16, gy16, bx16, by16;            // the glove; the dealer button
-static uint8_t tapT;
+static uint8_t tapT, shuffleT, thinkT;
 static bool forceDraw = true;
 
 // ---------------------------------------------------------------------------
@@ -249,6 +249,8 @@ static void announceWin(const Table &t, const Event &e) {
                 char ban[16];
                 fmtStr(fmtStr(ban, hand::catName(e.c)), "!");
                 fx::banner(ban, fx::B_GOLD, 60, 80);
+            } else if (you) {
+                fx::banner("YOU WIN!", fx::B_GOLD, 60, 70);
             }
         }
     }
@@ -275,6 +277,8 @@ void onEvents(Table &t) {
         switch (e.type) {
             case Ev::Shuffle:
                 audio::sfx(Sfx::Shuffle);
+                shuffleT = 30;
+                dealClock = 32;                   // the riffle, then the deal
                 break;
             case Ev::Button:
                 newHand();
@@ -410,6 +414,12 @@ void onEvents(Table &t) {
                 break;
             case Ev::HandEnd:
                 acting = 0xFF;
+                if (!t.seats[YOU].stack && !t.demo) {
+                    fx::banner("BUSTED!", fx::B_RED, 96, 90);
+                    fx::shake(14, 3);
+                    pal::flash(WHITE, 0xFBB, 6);
+                    audio::sfx(Sfx::Bust);
+                }
                 break;
             case Ev::Rebuy:
                 annBegin();
@@ -507,6 +517,11 @@ void update(const Table &t, uint32_t frame) {
         gx16 = (int16_t)(64 << 4); gy16 = (int16_t)(140 << 4);
     }
     if (tapT && ++tapT > 12) tapT = 0;
+    if (shuffleT) shuffleT--;
+    // A CPU thinking: CHChess's soft clock.
+    if (t.phase == Phase::Think && acting != YOU) {
+        if (++thinkT % 24 == 1) audio::sfx(thinkT & 32 ? Sfx::Tock : Sfx::Tick);
+    } else thinkT = 0;
     fx::update();
 }
 
@@ -716,10 +731,21 @@ static void drawNarration() {
     }
 }
 
+// The table's betting line: an ellipse 124 x 61 round (64, 62), as the
+// half-width of each row from the middle out.
+static const uint8_t RING[31] = {62, 62, 62, 62, 61, 61, 61, 60, 60, 59, 58, 58, 57, 56, 55, 54, 52, 51, 50, 48, 46, 44, 42, 40, 37, 34, 31, 27, 22, 16, 0};
+
 static void drawFelt() {
     gfx_fillRect(0, 10, 128, TRIM_Y - 10, FELT);
     // The table's betting line, and a darker rim.
-    gfx_ellipse(64, 62, 62, 30, FELT_LT);
+    for (int dy = 0; dy <= 30; dy++) {
+        int a = RING[dy], b = dy ? RING[dy - 1] - 1 : a;      // join the steps
+        if (b < a) b = a;
+        for (int sy = -1; sy <= 1; sy += 2) {
+            gfx_hline(64 - b, 62 + sy * dy, b - a + 1, FELT_LT);
+            gfx_hline(64 + a, 62 + sy * dy, b - a + 1, FELT_LT);
+        }
+    }
     dither(0, 10, 128, 2, FELT_DK, 0);
     dither(0, 10, 2, TRIM_Y - 10, FELT_DK, 0);
     dither(126, 10, 2, TRIM_Y - 10, FELT_DK, 1);
@@ -739,7 +765,7 @@ static bool moving() {
         }
     for (auto &g : ghosts) if (g.t) return true;
     for (auto &f : flies) if (f.T) return true;
-    return annT < 40 || tapT;
+    return annT < 40 || tapT || shuffleT;
 }
 
 static uint32_t signature(const Table &t, uint32_t frame, uint32_t ui) {
@@ -772,6 +798,18 @@ bool render(const Table &t, uint32_t frame, uint32_t ui) {
     drawPot(t);
     drawHint(t);
     drawYou(t, frame);
+    // The deck: riffled at the start of a hand, then dealt from.
+    bool dealing = false;
+    for (uint8_t s = 0; s < 5; s++) for (uint8_t i = 0; i < 7; i++) dealing |= views[s][i].live && views[s][i].t < 0;
+    if (shuffleT) {
+        int o = shuffleT > 15 ? (30 - shuffleT) / 2 : shuffleT / 2;     // apart, then together
+        for (int k = 0; k < 3; k++) {
+            art::mini(DECK_X + 6 - o - k, DECK_Y + 6 - k, 0, false);
+            art::mini(DECK_X + 6 + o - k, DECK_Y + 6 - k + ((shuffleT >> 1) & 1), 0, false);
+        }
+    } else if (dealing) {
+        for (int k = 0; k < 3; k++) art::mini(DECK_X + 6 - k, DECK_Y + 6 - k, 0, false);
+    }
     for (auto &g : ghosts) if (g.t) art::mini(g.x >> 4, g.y >> 4, 0, false);
     {   // the dealer button
         art::button(bx16 >> 4, by16 >> 4);

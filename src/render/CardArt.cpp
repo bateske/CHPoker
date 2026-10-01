@@ -158,18 +158,18 @@ void chipStack(int cx, int baseY, int32_t amount, uint8_t maxChips) {
         chip(cx, baseY - 2 * (i - first), chips[i], i == n - 1);
 }
 
+// Round chips from the rounded-rect corner table: at r = w / 2 it draws a
+// pixel-art circle, so CHGfx's circle code needn't be linked.
 void avatar(int cx, int cy, uint8_t colour) {
     uint8_t c = SEAT_COLOUR[colour % 6];
-    gfx_fillCircle(cx, cy, 4, c);
-    gfx_circle(cx, cy, 4, INK);
-    gfx_circle(cx, cy, 2, colour % 6 == 4 ? WHITE : SILVER);
+    panel(cx - 4, cy - 4, 9, 9, 4, c, INK);
+    roundRect(cx - 2, cy - 2, 5, 5, 2, colour % 6 == 4 ? WHITE : SILVER);
     gfx_pixel(cx, cy - 3, WHITE); gfx_pixel(cx, cy + 3, WHITE);
     gfx_pixel(cx - 3, cy, WHITE); gfx_pixel(cx + 3, cy, WHITE);
 }
 
 void button(int cx, int cy) {
-    gfx_fillCircle(cx, cy, 3, WHITE);
-    gfx_circle(cx, cy, 3, INK);
+    panel(cx - 3, cy - 3, 7, 7, 3, WHITE, INK);
     // A tiny D.
     gfx_vline(cx - 1, cy - 1, 3, INK);
     gfx_pixel(cx, cy - 1, INK); gfx_pixel(cx, cy + 1, INK); gfx_pixel(cx + 1, cy, INK);
