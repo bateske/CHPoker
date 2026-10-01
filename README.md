@@ -8,7 +8,10 @@ handheld (CH32X035 RISC-V, 128x128 colour LCD, piezo), in the style of
 (pot limit) and **Seven Card Stud** (fixed limit), against three CPU
 players at three tables, with a purse that carries over from game to game.
 
-Cards are riffled, dealt from the middle and flipped. Chips fly to the bets,
+The title spells "Poker" in the lettering of CHBlackjack's "BlackJack"
+logo while a royal flush drops in, each card flipping as it lands in a
+puff of felt, and the ace sets off a burst of stars. At the table, cards
+are riffled, dealt from the middle and flipped. Chips fly to the bets,
 are swept into the pot and pushed to the winner. Every seat's plate shows
 its stack and what it just did. A plate at the foot of the table calls the
 action ("BLUE RAISES TO $40", "GOLD SHOWS TWO PAIR"). At the showdown,
@@ -16,7 +19,7 @@ hands turn up one at a time, the winning five lift with a rainbow edge while
 the cards that don't play step back, and big hands get CHBlackjack's dancing
 lettering, confetti and fanfares.
 
-| Title | The lobby | Hold'em: a royal flush |
+| The title | The lobby | Hold'em: a royal flush |
 |---|---|---|
 | ![title](docs/title.gif) | ![lobby](docs/lobby.gif) | ![royal](docs/royal.gif) |
 | **Five Card Draw: drawing to four sevens** | **Seven Card Stud** | **Pot-limit Omaha** |
@@ -29,8 +32,8 @@ and graphics code and renders what the device shows.
 `tools/scripts/showcase.txt` makes them: the royal flush and the four sevens
 come from stacked decks; everything else is the CPUs playing.)
 
-The card art, suit glyphs and 3x5 lettering come from Press Play On Tape's
-Arduboy Blackjack by **filmote** (Simon Holmes) and **vampirics** (Stephane
+The card art, suit glyphs, 3x5 lettering and the letters of the title come
+from Press Play On Tape's Arduboy Blackjack by **filmote** (Simon Holmes) and **vampirics** (Stephane
 C), via CHBlackjack. Apache-2.0, like this game; see `LICENSE` and `NOTICE`.
 
 ## Installing
@@ -155,7 +158,8 @@ C++ compiler (zig, clang++ or g++ on the PATH, `pip install ziglang`, or
 * `python tools/device.py upload [--debug]` - build and upload (`--debug`
   adds the serial protocol for screenshots, injected input and lockstep;
   `device.py run SCRIPT OUTDIR` runs a script on the board).
-* `python tools/assets.py` packs the art in `tools/art/`;
+* `python tools/assets.py` packs the art in `tools/art/` (cards, the glove,
+  and `logo.txt`, the title's lettering as `#` and `.`);
   `python tools/audio/preview.py out/` renders the sound effects to WAV.
 
 ## Files
