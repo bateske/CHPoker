@@ -9,7 +9,9 @@ derivative of "Blackjack" for the Arduboy by Press Play On Tape - Simon
 Holmes (filmote), code, and Stephane C (vampirics), art - Apache-2.0
 (https://github.com/Press-Play-On-Tape/Blackjack, commit 72a6b1b). From it
 come the card drawing (PlayGameState_Render.cpp drawCard()), the 5x6 suit
-glyphs (tools/art/suits.txt) and the 3x5 pixel font in src/gfx/Draw.cpp.
+glyphs (tools/art/suits.txt), the 3x5 pixel font in src/gfx/Draw.cpp, and
+the lettering of the title (tools/art/logo.txt: "Poker" drawn in the letters
+of PPOT's "BlackJack" logo).
 
 From CHChess (https://github.com/bateske/CHChess, Apache-2.0): the input and
 frame pacing (src/CHGame.*), drawing primitives, outlined lettering,

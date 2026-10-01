@@ -14,6 +14,7 @@
 #include "../game/Table.h"
 #include "../game/Hand.h"
 #include "../render/CardArt.h"
+#include "../assets/Assets.h"
 #include "../render/Bar.h"
 #include "../stage/Stage.h"
 #include "../save/Save.h"
@@ -177,13 +178,30 @@ static void titleUpdate() {
         else go(Scr::Stats);
     }
     idle = arduboy.anyPressed(0xFF) ? 0 : (uint16_t)(idle + 1);
+    // The royal flush: each card kicks up a puff of felt as it lands, and
+    // the ace, turning up last, completes it with a burst of stars.
+    for (int i = 0; i < 5; i++) {
+        int d = (int)t - 10 - i * 6;
+        if (d == 16) fx::burst(fx::DUST, 24 + i * 20, 80, 8, 22, FELT_LT);
+        if (d == 20 && i == 4) {
+            fx::burst(fx::STAR, 104, 64, 14, 48, FX_A);
+            fx::burst(fx::SPARK, 64, 64, 16, 56, GOLD);
+        }
+    }
     if (idle > 900 && !fadeOut) startDemo();
 }
 
 static void titleRender(uint32_t frame) {
     feltBackdrop();
-    // The top rows are FX_B, so the palette makes the lettering shimmer.
-    title35("POKER", 8, 5, FX_B, GOLD, WOOD, WINE, 21);
+    // "Poker" in the BlackJack logo's lettering, at twice its size; the top
+    // rows are FX_B, so the palette makes it shimmer.
+    {
+        Mask m = maskBegin(LOGO_W * 2, LOGO_H * 2);
+        maskBlit1(m, LOGO, LOGO_W, LOGO_H, 2);
+        uint8_t ramp[LOGO_H * 2];
+        for (int i = 0; i < LOGO_H * 2; i++) ramp[i] = i < 4 ? FX_B : (i < 23 ? GOLD : WOOD);
+        maskDraw(m, 64 - LOGO_W, 8, INK, WINE, ramp);
+    }
     centred35(41, "HOLD'EM - DRAW - OMAHA - STUD", CYAN);
     // A royal flush in spades, dropped in one card at a time, each turning
     // over as it lands. They overlap by 2 px: the court portraits leave
@@ -200,6 +218,7 @@ static void titleRender(uint32_t frame) {
         if (w < 2) w = 2;
         art::card(13 + i * 20, y, ROYAL[i], f >= 4, w, true);
     }
+    fx::drawParticles();
     for (uint8_t i = 0; i < 3; i++) menuItem(86 + i * 13, TITLE_ITEM[i], i == sel, frame);
 }
 

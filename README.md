@@ -45,7 +45,7 @@ You need the Arduino IDE (2.x) or `arduino-cli`, and:
 The game needs **link-time optimisation** to fit the 50,944-byte application
 region: pick *Tools > Optimize > Smallest + LTO* and *Tools > USB > Upload
 only* (the game has no use for USB Serial, and uploading works as before).
-Built that way it takes about 48.4 KB, leaving the two flash pages it saves
+Built that way it takes about 48.9 KB, leaving the two flash pages it saves
 in. From the command line:
 
     arduino-cli compile -b CHGame:ch32v:CHGame:opt=oslto,rtlib=nano,periph=game,usb=uploadonly CHPoker
@@ -114,7 +114,7 @@ bet on fourth street; a new CPU is dealt in without posting.
 ## How it fits
 
 * **Flash.** All four games, every screen and the attract demo fit in about
-  48.4 KB of the 50.9 KB with LTO: the presentation is the biggest part
+  48.9 KB of the 50.9 KB with LTO: the presentation is the biggest part
   (cards, chips, plates, bar, animation: ~12 KB without LTO), then the
   rules (~7.5 KB), screens (~6.3 KB), CHGfx and the core. CHGfx's circle,
   ellipse and line drawing were replaced by the rounded-rect corner table

@@ -15,5 +15,8 @@ extern const uint16_t PIP13_AT[4];
 extern const uint8_t COURT_JACK[98];
 extern const uint8_t COURT_QUEEN[112];
 extern const uint8_t COURT_KING[110];
+extern const uint8_t LOGO[112];
+constexpr int LOGO_W = 59;
+constexpr int LOGO_H = 14;
 extern const uint8_t HAND[111];
 constexpr int HAND_TIP = 5;

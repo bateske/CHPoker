@@ -9,6 +9,7 @@ Sources, all palette-letter text or palette-exact PNGs in tools/art/:
                   (ranks A..K, pips hearts/diamonds/spades/clubs; reordered
                   here into poker order: ranks 2..A, suits c d h s).
   * hand.png (or hand.txt) - CHChess's pointing glove.
+  * logo.txt    - the title, in PPOT's BlackJack logo lettering.
 
 Outputs:
   src/assets/Assets.h / Assets.cpp   - generated, do not edit
@@ -93,6 +94,15 @@ def pack_cols(bits):
     h, w = len(bits), len(bits[0])
     assert h <= 8
     return [sum(1 << y for y in range(h) if bits[y][x]) for x in range(w)]
+
+
+def pack_rows1(bits):
+    """1 bpp rows -> MSB-first row bytes."""
+    out = []
+    for row in bits:
+        for x0 in range(0, len(row), 8):
+            out.append(sum(0x80 >> i for i in range(8) if x0 + i < len(row) and row[x0 + i]))
+    return out
 
 
 def pack_span1(bits):
@@ -202,6 +212,15 @@ def main():
     for img, nm in zip(courts, ["JACK", "QUEEN", "KING"]):
         o.array(f"COURT_{nm}", pack_span4(img), comment=f"{nm.title()} portrait 14x18, span4")
         preview(f"court_{nm.lower()}", img, bg=1)
+
+    # The title lettering (tools/art/logo.txt), 1 bpp rows.
+    rows = [ln.rstrip() for ln in (ART / "logo.txt").read_text().splitlines() if ln and not ln.startswith("# ")]
+    w = max(len(r) for r in rows)
+    bits = [[1 if ch == "#" else 0 for ch in r.ljust(w)] for r in rows]
+    o.array("LOGO", pack_rows1(bits), comment=f"'Poker' in PPOT's BlackJack lettering, {w}x{len(bits)}, MSB-first rows")
+    o.const("LOGO_W", w)
+    o.const("LOGO_H", len(bits))
+    preview("logo", [[1 if b else TRANSPARENT for b in r] for r in bits], 6, bg=0)
 
     png = ART / "hand.png"
     hand = load_png(png) if png.exists() else load_art("hand")

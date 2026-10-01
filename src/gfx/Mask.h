@@ -29,6 +29,10 @@ Mask maskBegin(int w, int h);                   // cleared; w*h <= ~7000 px
 void maskText35(Mask &m, int x, int y, const char *s, uint8_t scale = 1, const int8_t *dy = nullptr);
 int  text35WidthScaled(const char *s, uint8_t scale);
 
+// A 1 bpp bitmap (MSB-first rows) into the mask at (0, 0), each pixel
+// scale x scale: a logo drawn as lettering.
+void maskBlit1(Mask &m, const uint8_t *bits, uint8_t w, uint8_t h, uint8_t scale);
+
 // Paint the mask with its top-left at (x, y): the shadow (the outline moved
 // (1, 1)), the outline, then the fill, ramp[r] for mask row r (gradient
 // lettering).

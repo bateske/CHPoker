@@ -42,6 +42,21 @@ void maskText35(Mask &m, int x, int y, const char *s, uint8_t scale, const int8_
     }
 }
 
+void maskBlit1(Mask &m, const uint8_t *bits, uint8_t w, uint8_t h, uint8_t scale) {
+    int st = (w + 7) >> 3;
+    for (int y = 0; y < h; y++)
+        for (int x = 0; x < w; x++) {
+            if (!((bits[y * st + (x >> 3)] << (x & 7)) & 0x80)) continue;
+            for (int dy = 0; dy < scale; dy++) {
+                uint8_t *row = m.bits + (1 + y * scale + dy) * m.stride;     // + the margin
+                for (int dx = 0; dx < scale; dx++) {
+                    int px = 1 + x * scale + dx;
+                    row[px >> 3] |= (uint8_t)(0x80 >> (px & 7));
+                }
+            }
+        }
+}
+
 // Paint the set bits of one mask row (stride bytes, MSB-first) at screen
 // row y, bit 0 at screen column x. A mask byte is eight pixels, four
 // framebuffer bytes, so the bits go two at a time (at an odd x shifted one
