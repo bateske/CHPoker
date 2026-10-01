@@ -27,6 +27,7 @@ namespace screens {
 enum class Scr : uint8_t { Title, Lobby, Play, Options, Stats, Won, Broke };
 static Scr cur = Scr::Title, pending = Scr::Title, optBack = Scr::Title;
 static uint16_t t;                   // frames on this screen
+static uint16_t idle;                // frames since a button on the title (the demo starts at 900)
 static uint8_t fadeOut, fadeIn;
 static uint8_t sel;                  // menu cursor
 static Table table;
@@ -58,7 +59,7 @@ static void enter(Scr s) {
     pal::setMode(pal::CASINO);
     pal::setDesaturate(0);
     stage::invalidate();
-    if (s == Scr::Title) audio::sfx(Sfx::Title);
+    if (s == Scr::Title) { audio::sfx(Sfx::Title); idle = 0; }
     if (s == Scr::Won) { audio::sfx(Sfx::BigWin); audio::led(audio::LED_PARTY); }
     if (s == Scr::Broke) audio::sfx(Sfx::Bust);
 }
@@ -175,8 +176,8 @@ static void titleUpdate() {
         else if (sel == 1) { optBack = Scr::Title; go(Scr::Options); }
         else go(Scr::Stats);
     }
-    if (arduboy.anyPressed(0xFF)) t = 0;
-    if (t > 900 && !fadeOut) startDemo();
+    idle = arduboy.anyPressed(0xFF) ? 0 : (uint16_t)(idle + 1);
+    if (idle > 900 && !fadeOut) startDemo();
 }
 
 static void titleRender(uint32_t frame) {
@@ -184,7 +185,9 @@ static void titleRender(uint32_t frame) {
     // The top rows are FX_B, so the palette makes the lettering shimmer.
     title35("POKER", 8, 5, FX_B, GOLD, WOOD, WINE, 21);
     centred35(41, "HOLD'EM - DRAW - OMAHA - STUD", CYAN);
-    // A royal flush in spades, dealt in one card at a time.
+    // A royal flush in spades, dropped in one card at a time, each turning
+    // over as it lands. They overlap by 2 px: the court portraits leave
+    // their last column empty, so every face shows whole.
     static const uint8_t ROYAL[5] = {makeCard(RT, SPADES), makeCard(RJ, SPADES), makeCard(RQ, SPADES),
                                      makeCard(RK, SPADES), makeCard(RA, SPADES)};
     for (int i = 0; i < 5; i++) {
@@ -192,7 +195,10 @@ static void titleRender(uint32_t frame) {
         if (d < 0) continue;
         int e = fx::ease(fx::OUT_BACK, d, 16);
         int y = 50 - 40 + ((40 * e) >> 8) + (i == 2 ? -2 : (i == 1 || i == 3) ? 0 : 2);
-        art::card(18 + i * 18, y, ROYAL[i], d >= 16, art::CARD_W, i == 4);
+        int f = d - 16, w = art::CARD_W;                 // the flip: squash, then open face up
+        if (f >= 0 && f < 8) w = f < 4 ? art::CARD_W * (4 - f) / 5 : art::CARD_W * (f - 3) / 5;
+        if (w < 2) w = 2;
+        art::card(13 + i * 20, y, ROYAL[i], f >= 4, w, true);
     }
     for (uint8_t i = 0; i < 3; i++) menuItem(86 + i * 13, TITLE_ITEM[i], i == sel, frame);
 }
