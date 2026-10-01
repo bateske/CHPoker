@@ -16,15 +16,18 @@ hands turn up one at a time, the winning five lift with a rainbow edge while
 the cards that don't play step back, and big hands get CHBlackjack's dancing
 lettering, confetti and fanfares.
 
-| Hold'em: a royal flush | Five Card Draw | Seven Card Stud |
+| Title | The lobby | Hold'em: a royal flush |
 |---|---|---|
-| ![royal](docs/royal.gif) | ![draw](docs/draw.gif) | ![stud](docs/stud.gif) |
-| **Title** | **Omaha** | **You broke the bank** |
-| ![title](docs/title.gif) | ![omaha](docs/omaha.gif) | ![won](docs/won.gif) |
+| ![title](docs/title.gif) | ![lobby](docs/lobby.gif) | ![royal](docs/royal.gif) |
+| **Five Card Draw: drawing to four sevens** | **Seven Card Stud** | **Pot-limit Omaha** |
+| ![draw](docs/draw.gif) | ![stud](docs/stud.gif) | ![omaha](docs/omaha.gif) |
+| **All in, busted, back in** | **You broke the bank** | |
+| ![allin](docs/allin.gif) | ![won](docs/won.gif) | |
 
 (Captured from the PC simulator in `tools/chsim`, which runs the real game
-and graphics code and renders what the device shows. `tools/scripts/showcase.txt`
-makes them, with stacked decks.)
+and graphics code and renders what the device shows.
+`tools/scripts/showcase.txt` makes them: the royal flush and the four sevens
+come from stacked decks; everything else is the CPUs playing.)
 
 The card art, suit glyphs and 3x5 lettering come from Press Play On Tape's
 Arduboy Blackjack by **filmote** (Simon Holmes) and **vampirics** (Stephane

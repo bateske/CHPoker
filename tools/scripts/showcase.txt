@@ -7,6 +7,38 @@ rec start 3
 wait 150
 rec stop title
 #
+# The lobby: the four games, the three tables, the buy-in, and sitting down.
+rec start 3
+tap A
+wait 30
+tap RIGHT
+wait 24
+tap RIGHT
+wait 24
+tap RIGHT
+wait 24
+tap RIGHT
+wait 24
+tap DOWN
+wait 10
+tap RIGHT
+wait 30
+tap RIGHT
+wait 40
+tap RIGHT
+wait 24
+tap DOWN
+wait 10
+tap RIGHT
+wait 8
+tap RIGHT
+wait 16
+tap DOWN
+wait 16
+tap A
+wait 200
+rec stop lobby
+#
 # Hold'em: A-K of spades, a royal flush on the river, all in.
 # Seed 7 puts the button on seat 3, so you are dealt cards 0 and 4.
 say $ 1000
@@ -62,6 +94,21 @@ say G 2 1 1000 5
 rec start 4
 playto 13 150
 rec stop omaha
+#
+# All in with $40, a loss, BUSTED! - and buying back in.
+say $ 140
+say G 0 0 40 78
+rec start 3
+waitturn 6
+tap RIGHT
+wait 6
+tap RIGHT
+wait 10
+tap A
+playto 13 140
+tap A
+wait 90
+rec stop allin
 #
 # Breaking the bank.
 say $ 12500
