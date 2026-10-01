@@ -76,7 +76,6 @@ void card(int x, int y, uint8_t c, bool faceUp, int w, bool full, uint8_t edge) 
         uint8_t remap[16];
         for (uint8_t i = 0; i < 16; i++) remap[i] = i;
         remap[RED] = col == INK || col == FELT_DK ? BLUE : col;   // robe in the suit colour
-        gfx_rect(x + 6, y + 4, 16, 20, SILVER);
         sprite4(COURT[r - RJ], x + 7, y + 5, remap);
         glyph(x + 16, y + 20, SUIT_SMALL + s * 5, 5, col);
     } else {
